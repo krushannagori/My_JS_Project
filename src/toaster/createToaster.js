@@ -63,7 +63,11 @@ export function createToaster(initialConfig = {}) {
       history: getHistory(),
     };
     for (const listener of listeners) {
-      listener(snapshot);
+      try {
+        listener(snapshot);
+      } catch (error) {
+        console.error("Toast subscriber callback failed:", error);
+      }
     }
   }
 
@@ -346,8 +350,14 @@ export function createToaster(initialConfig = {}) {
     }
 
     if (payload.id && toasts.has(payload.id)) {
-      update(payload.id, payload);
-      return payload.id;
+      const existing = toasts.get(payload.id);
+      if (existing && !existing.exiting) {
+        update(payload.id, payload);
+        return payload.id;
+      }
+      if (existing) {
+        removeToastElement(existing);
+      }
     }
 
     const container = getOrCreateContainer(payload.position);

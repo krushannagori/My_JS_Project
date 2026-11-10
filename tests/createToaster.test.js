@@ -205,4 +205,17 @@ describe("createToaster", () => {
     expect(document.querySelectorAll(".tc-container")).toHaveLength(0);
     expect(toaster.show("After destroy")).toBeNull();
   });
+
+  it("allows reusing an explicit toast id while the previous toast is exiting", () => {
+    toaster = createToaster({ exitDuration: 220, duration: 5000 });
+
+    toaster.info("First save", { id: "save-status" });
+    toaster.dismiss("save-status");
+
+    const reusedId = toaster.success("Second save", { id: "save-status" });
+    expect(reusedId).toBe("save-status");
+    expect(toaster.getToasts()).toHaveLength(1);
+    expect(toaster.getToasts()[0].message).toBe("Second save");
+    expect(document.querySelectorAll('[data-toast-id="save-status"]')).toHaveLength(1);
+  });
 });

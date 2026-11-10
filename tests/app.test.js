@@ -57,4 +57,16 @@ describe("ToastCraft interactive playground", () => {
     root.querySelector('[data-action="clear"]').click();
     expect(controller.toaster.getToasts()).toHaveLength(0);
   });
+
+  it("cancels pending burst timers when Clear All is clicked", () => {
+    root.querySelector('[data-action="burst"]').click();
+    vi.advanceTimersByTime(180);
+    expect(controller.toaster.getToasts()).toHaveLength(2);
+
+    root.querySelector('[data-action="clear"]').click();
+    expect(controller.toaster.getToasts()).toHaveLength(0);
+
+    vi.advanceTimersByTime(1000);
+    expect(controller.toaster.getToasts()).toHaveLength(0);
+  });
 });

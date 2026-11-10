@@ -402,12 +402,30 @@ export function mountPlayground(rootElement, initialOptions = {}) {
     triggerConfiguredToast();
   });
 
+  const pendingTimers = new Set();
+
+  function scheduleTimer(callback, delayMs) {
+    const id = setTimeout(() => {
+      pendingTimers.delete(id);
+      callback();
+    }, delayMs);
+    pendingTimers.add(id);
+    return id;
+  }
+
+  function clearPendingTimers() {
+    for (const id of pendingTimers) {
+      clearTimeout(id);
+    }
+    pendingTimers.clear();
+  }
+
   rootElement.querySelector('[data-action="promise"]').addEventListener("click", () => {
     state.promiseAttempt += 1;
     const shouldSucceed = state.promiseAttempt % 2 === 1;
 
     const simulatedRequest = new Promise((resolve, reject) => {
-      setTimeout(() => {
+      scheduleTimer(() => {
         if (shouldSucceed) {
           resolve({ records: 18 });
         } else {
@@ -425,7 +443,6 @@ export function mountPlayground(rootElement, initialOptions = {}) {
       .catch(() => {});
   });
 
-  const burstTimers = [];
   rootElement.querySelector('[data-action="burst"]').addEventListener("click", () => {
     const batch = [
       { variant: "info", title: "Queue started", message: "Preparing 3 assets for upload." },
@@ -434,22 +451,21 @@ export function mountPlayground(rootElement, initialOptions = {}) {
       { variant: "success", title: "All tasks done", message: "Pipeline completed cleanly." },
     ];
     batch.forEach((item, index) => {
-      const id = setTimeout(() => {
+      scheduleTimer(() => {
         toaster.show(item);
       }, index * 180);
-      burstTimers.push(id);
     });
   });
 
   rootElement.querySelector('[data-action="classic"]').addEventListener("click", () => {
     toaster("Download Done");
-    const id = setTimeout(() => {
+    scheduleTimer(() => {
       toaster.success("Harsh accepted your request");
     }, 600);
-    burstTimers.push(id);
   });
 
   rootElement.querySelector('[data-action="clear"]').addEventListener("click", () => {
+    clearPendingTimers();
     toaster.clear();
   });
 
@@ -473,10 +489,7 @@ export function mountPlayground(rootElement, initialOptions = {}) {
   return {
     toaster,
     destroy() {
-      for (const id of burstTimers) {
-        clearTimeout(id);
-      }
-      burstTimers.length = 0;
+      clearPendingTimers();
       unsubscribe();
       toaster.destroy();
       rootElement.replaceChildren();
